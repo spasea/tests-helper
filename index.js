@@ -4,7 +4,4 @@ const showTips = () => [].slice.call(document.querySelectorAll('.reply_ticket'))
   }
 })
 
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('loaded')
-  ;[].slice.call(document.querySelectorAll('.label_raio')).forEach(label => label.addEventListener('click', showTips))
-})
+;[].slice.call(document.querySelectorAll('.label_raio')).forEach(label => label.addEventListener('click', showTips))
