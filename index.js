@@ -1,3 +1,15 @@
+const insertCss = () => {
+  const css = `.error_choose {
+    display: none !important;
+  }`
+  const head = document.head || document.getElementsByTagName('head')[0]
+  const style = document.createElement('style')
+
+  head.appendChild(style)
+  style.type = 'text/css'
+  style.appendChild(document.createTextNode(css))
+}
+
 (() => {
   const isTraining = (() => {
     const trainingProp = location.search.split('&').find(item => item.includes('training'))
@@ -14,6 +26,8 @@
 
   const element = document.querySelector('.subscriptions_not')
   if (element) {
-    element.classList.remove('subscriptions_not')
+    element.classList.add('subscriptions_not_active')
   }
+  
+  insertCss()
 })()
