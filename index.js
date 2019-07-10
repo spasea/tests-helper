@@ -10,11 +10,27 @@ const insertCss = () => {
   style.appendChild(document.createTextNode(css))
 }
 
+const trainingKey = 'training'
+const checkedClass = 'checkbox_active'
+const detectIsTraining = () => {
+  return JSON.parse(localStorage.getItem(trainingKey))
+}
+const setTraining = isTraining => {
+  localStorage.setItem(trainingKey, isTraining)
+}
+
 (() => {
-  const isTraining = (() => {
-    const trainingProp = location.search.split('&').find(item => item.includes('training'))
-    return trainingProp ? trainingProp.split('=')[1] === 'on' : false
-  })()
+  insertCss()
+  
+  const inputTraining = document.querySelector('.checkt_sub > label:first-of-type input')
+  const isTraining = detectIsTraining()
+  
+  document.querySelector('.checkt_sub > label:first-of-type span').classList[isTraining ? 'add' : 'remove'](checkedClass)
+  inputTraining.checked = isTraining
+  
+  document.querySelector('.use-option').addEventListener('click', () => {
+    setTraining(inputTraining.checked)
+  })
   
   const showTips = () => [].slice.call(document.querySelectorAll('.reply_ticket')).forEach(item => { 
     if (item.style['border-color'] !== '' && isTraining) {
@@ -28,6 +44,4 @@ const insertCss = () => {
   if (element) {
     element.classList.add('subscriptions_not_active')
   }
-  
-  insertCss()
 })()
