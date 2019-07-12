@@ -25,10 +25,11 @@ const setTraining = isTraining => {
   const inputTraining = document.querySelector('.checkt_sub > label:first-of-type input')
   const isTraining = detectIsTraining()
   
-  document.querySelector('.checkt_sub > label:first-of-type span').classList[isTraining ? 'add' : 'remove'](checkedClass)
+  const trainingButton = document.querySelector('.checkt_sub > label:first-of-type span')
+  trainingButton.classList[isTraining ? 'add' : 'remove'](checkedClass)
   inputTraining.checked = isTraining
   
-  document.querySelector('.use-option').addEventListener('click', () => {
+  trainingButton.addEventListener('click', () => {
     setTraining(inputTraining.checked)
   })
   
