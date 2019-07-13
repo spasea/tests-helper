@@ -12,18 +12,20 @@ const insertCss = () => {
 
 const trainingKey = 'training'
 const checkedClass = 'checkbox_active'
+let isTraining = false
 const detectIsTraining = () => {
   return JSON.parse(localStorage.getItem(trainingKey))
 }
-const setTraining = isTraining => {
-  localStorage.setItem(trainingKey, isTraining)
+const setTraining = newTrainingValue => {
+  isTraining = newTrainingValue
+  localStorage.setItem(trainingKey, newTrainingValue)
 }
 
 (() => {
   insertCss()
   
   const inputTraining = document.querySelector('.checkt_sub > label:first-of-type input')
-  const isTraining = detectIsTraining()
+  isTraining = detectIsTraining()
   
   const trainingButton = document.querySelector('.checkt_sub > label:first-of-type span')
   trainingButton.classList[isTraining ? 'add' : 'remove'](checkedClass)
