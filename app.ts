@@ -1,5 +1,7 @@
 import dotenv from 'dotenv';
 import { v2 as cloudinary } from 'cloudinary';
+import VodiyLoader from './src/VodiyLoader';
+import Storage from './src/Storage';
 
 dotenv.config();
 
@@ -13,25 +15,24 @@ const main = async () => {
     secure: true,
   });
 
-  // const instance = new VodiyLoader();
-  // //
-  // await instance.fillUpQuestions();
-  // //
-  // const [questions, themes, tickets] = await Promise.all([
-  //   instance.getQuestions(),
-  //   instance.getThemes(),
-  //   instance.getTickets(),
-  // ]);
-  //
-  // Storage.saveJSONToStorage('questions.json', questions);
-  // Storage.saveJSONToStorage('themes.json', themes);
-  // Storage.saveJSONToStorage('tickets.json', tickets);
-
-  // console.log(new URLProcessor('https://vodiy.ua').toAbsolute('/media'));
-
-  // Cloudinary.v2.uploader.upload('');
-
   console.log('start');
+
+  const instance = new VodiyLoader();
+
+  // await instance.fillUpQuestions();
+  // await instance.processTooltips();
+
+  const [questions, themes, tickets, tooltips] = await Promise.all([
+    instance.getQuestions(),
+    instance.getThemes(),
+    instance.getTickets(),
+    instance.getTooltips(),
+  ]);
+
+  Storage.saveJSONToStorage('questions.json', questions);
+  Storage.saveJSONToStorage('themes.json', themes);
+  Storage.saveJSONToStorage('tickets.json', tickets);
+  Storage.saveJSONToStorage('tooltips.json', tooltips);
 
   // await Storage.uploadMedia('https://vodiy.ua/media/questions/1219_6.jpg');
 

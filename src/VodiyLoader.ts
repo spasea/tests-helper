@@ -2,8 +2,10 @@ import { IPageLoader } from './types/page-loader';
 import axios from 'axios';
 import { JSDOM } from 'jsdom';
 import { v4 } from 'uuid';
+import FormData from 'form-data';
 import HTMLNodes from './HTMLNodes';
 import URLProcessor from './URLProcessor';
+import Time from './Time';
 
 class VodiyLoader implements IPageLoader {
   static domainURL = 'https://vodiy.ua';
@@ -13,6 +15,7 @@ class VodiyLoader implements IPageLoader {
   private themes: { [id: string]: ITheme } = {};
   private questions: { [id: string]: IQuestion } = {};
   private tickets: { [id: string]: ITicket } = {};
+  private tooltips: ITooltips = {};
 
   private getThemesUrl = async (_pageData = null): Promise<IVodiyThemeUrl[]> => {
     const pageData =
@@ -185,6 +188,31 @@ class VodiyLoader implements IPageLoader {
       const jsdomInstance = new JSDOM(data);
 
       await this.handleSingleTheme(jsdomInstance, urlData.title, urlData.url);
+      await Time.sleep_ms(200);
+    }
+
+    return this;
+  };
+
+  processTooltips = async (): Promise<this> => {
+    Object.values(this.questions).forEach((question) => {
+      const tooltips = question.description.filter((item) => item.match(/^\w/i));
+
+      tooltips.forEach((tooltip) => {
+        this.tooltips[tooltip] = '';
+      });
+    });
+
+    for (const tooltip of Object.keys(this.tooltips)) {
+      const [type] = tooltip.split('__');
+
+      const fd = new FormData();
+      fd.append('type', type);
+
+      const { data } = await axios.post(`https://vodiy.ua/load_tooltip/`, fd);
+
+      this.tooltips[tooltip] = data.response;
+      await Time.sleep_ms(200);
     }
 
     return this;
@@ -203,7 +231,7 @@ class VodiyLoader implements IPageLoader {
   };
 
   getTooltips = async (): Promise<ITooltips> => {
-    return Promise.resolve({});
+    return this.tooltips;
   };
 }
 
