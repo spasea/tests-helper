@@ -20,7 +20,8 @@ const main = async () => {
   const instance = new VodiyLoader();
 
   await instance.fillUpQuestions();
-  await Promise.all([instance.processTooltips(), instance.processQuestionImages()]);
+  const [, loadedImages] = await Promise.all([instance.processTooltips(), instance.processQuestionImages()]);
+  await instance.processTooltipImages(loadedImages);
 
   const [questions, themes, tickets, tooltips] = await Promise.all([
     instance.getQuestions(),

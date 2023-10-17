@@ -24,6 +24,29 @@ class VodiyImages {
     return [process.env.MEDIA_PATH, media, CURRENT_YEAR, ...rest].join('/');
   }
 
+  static replaceTooltipImages(tooltip: string): { tooltip: string; imageUrls: string[] } {
+    const imageUrls = tooltip.match(/(src="|src=)(\/media.+?)("| )/gi)?.map((entry) => {
+      const mediaPath = entry.replace(/"/g, '').replace(/src=/g, '').trim();
+
+      return {
+        mediaPath,
+        fullPath: `https://vodiy.ua${mediaPath}`,
+      };
+    });
+
+    if (!imageUrls) {
+      return { tooltip, imageUrls: [] };
+    }
+
+    let processedTooltip = tooltip;
+
+    imageUrls.forEach(({ mediaPath, fullPath }) => {
+      processedTooltip = processedTooltip.replace(mediaPath, VodiyImages.replaceImageUrl(fullPath));
+    });
+
+    return { tooltip: processedTooltip, imageUrls: imageUrls.map(({ fullPath }) => fullPath) };
+  }
+
   static replaceQuestionImage(question: IQuestion) {
     const questionClone = {
       ...question,

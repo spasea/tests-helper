@@ -157,7 +157,7 @@ class VodiyLoader implements IPageLoader {
     );
     const pagesAmount = Math.ceil(questionsAmount / 20);
 
-    if (pagesAmount === 1) {
+    if (pagesAmount === 1 || true) {
       return this;
     }
 
@@ -220,7 +220,7 @@ class VodiyLoader implements IPageLoader {
     return this;
   };
 
-  processQuestionImages = async (questions = this.questions): Promise<this> => {
+  processQuestionImages = async (questions = this.questions): Promise<{ [key: string]: string }> => {
     const imageKeys = Object.values(questions).reduce((acc, question) => {
       const missingImages = VodiyImages.extractImages(question);
 
@@ -241,6 +241,37 @@ class VodiyLoader implements IPageLoader {
     Object.keys(questions).forEach((key) => {
       questions[key] = VodiyImages.replaceQuestionImage(questions[key]);
     });
+
+    return imageKeys;
+  };
+
+  processTooltipImages = async (
+    loadedImages: { [key: string]: string },
+    tooltips: ITooltips = this.tooltips
+  ): Promise<this> => {
+    const imageKeys = Object.keys(tooltips).reduce((acc, tooltipKey) => {
+      const tooltipValue = tooltips[tooltipKey];
+
+      const { tooltip, imageUrls } = VodiyImages.replaceTooltipImages(tooltipValue);
+
+      tooltips[tooltipKey] = tooltip;
+
+      return {
+        ...acc,
+        ...imageUrls.reduce(
+          (imagesAcc, image) => (loadedImages.hasOwnProperty(image) ? imagesAcc : { ...imagesAcc, [image]: '' }),
+          {}
+        ),
+      };
+    }, {});
+
+    for (const imageKey of Object.keys({ ...imageKeys, ...loadedImages })) {
+      if (!imageKey) {
+        continue;
+      }
+
+      await Storage.uploadMedia(imageKey);
+    }
 
     return this;
   };
