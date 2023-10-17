@@ -53,6 +53,29 @@ class VodiyLoader implements IPageLoader {
       );
   };
 
+  private processDescription = (description: string): string[] => {
+    const inst = new JSDOM(description);
+    const content = inst.window.document.body.innerHTML;
+    const titles = content.match(/(\<a.+?<\/a>)/g).map((entry) => {
+      const div = inst.window.document.createElement('div');
+      div.innerHTML = entry;
+      const link = div.querySelector('a');
+      const titleValue = link.getAttribute('title') || link.getAttribute('oldtitle');
+
+      return [titleValue, HTMLNodes.processInnerText(link.innerHTML), entry];
+    });
+
+    const replacedTooltips = titles.reduce((acc, node) => {
+      const [title, content, entry] = node;
+
+      return acc.replace(entry, `__TOOLTIP__${title}__${content}__TOOLTIP__`);
+    }, content);
+
+    const replacedMedia = replacedTooltips.replace(/(src=")(.+?)(")/g, '$1https://vodiy.ua$2$3');
+
+    return replacedMedia.split('__TOOLTIP__');
+  };
+
   private processSingleQuestion = async (listNode: HTMLElement): Promise<IQuestion & { ticketId: string }> => {
     const title = HTMLNodes.processInnerText(listNode.querySelector('p').innerHTML);
     const source = HTMLNodes.processInnerText(listNode.querySelector('.title_ticket').innerHTML);
@@ -75,13 +98,7 @@ class VodiyLoader implements IPageLoader {
     let description = [];
 
     try {
-      description = listNode
-        .querySelector('.reply_ticket p')
-        .innerHTML.replace(
-          /(\<a {0,}href=")(.+?)(" {0,}title=")(.+?)(".+?\>?)(.+?)(<\/a>)/g,
-          '__TOOLTIP__$4__$6__TOOLTIP__'
-        )
-        .split('__TOOLTIP__');
+      description = this.processDescription(listNode.querySelector('.reply_ticket p').innerHTML);
     } catch (e) {
       console.error('No description in question "' + questionContent + '"');
     }
