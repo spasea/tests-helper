@@ -20,8 +20,8 @@ class Storage {
     const { CURRENT_YEAR } = process.env;
     const jsdomInstance = new JSDOM('');
     const url = new jsdomInstance.window.URL(path);
-    const [, media, type] = url.pathname.split('/').slice(0, -1);
-    const targetFolder = ['', media, CURRENT_YEAR, type].join('/');
+    const [, media, ...rest] = url.pathname.split('/').slice(0, -1);
+    const targetFolder = ['', media, CURRENT_YEAR, ...rest].join('/');
 
     const options = {
       use_filename: true,

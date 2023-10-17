@@ -19,8 +19,8 @@ const main = async () => {
 
   const instance = new VodiyLoader();
 
-  // await instance.fillUpQuestions();
-  // await instance.processTooltips();
+  await instance.fillUpQuestions();
+  await Promise.all([instance.processTooltips(), instance.processQuestionImages()]);
 
   const [questions, themes, tickets, tooltips] = await Promise.all([
     instance.getQuestions(),
@@ -33,8 +33,6 @@ const main = async () => {
   Storage.saveJSONToStorage('themes.json', themes);
   Storage.saveJSONToStorage('tickets.json', tickets);
   Storage.saveJSONToStorage('tooltips.json', tooltips);
-
-  // await Storage.uploadMedia('https://vodiy.ua/media/questions/1219_6.jpg');
 
   console.log('done');
 };

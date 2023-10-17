@@ -6,6 +6,8 @@ import FormData from 'form-data';
 import HTMLNodes from './HTMLNodes';
 import URLProcessor from './URLProcessor';
 import Time from './Time';
+import Storage from './Storage';
+import VodiyImages from './VodiyImages';
 
 class VodiyLoader implements IPageLoader {
   static domainURL = 'https://vodiy.ua';
@@ -214,6 +216,31 @@ class VodiyLoader implements IPageLoader {
       this.tooltips[tooltip] = data.response;
       await Time.sleep_ms(200);
     }
+
+    return this;
+  };
+
+  processQuestionImages = async (questions = this.questions): Promise<this> => {
+    const imageKeys = Object.values(questions).reduce((acc, question) => {
+      const missingImages = VodiyImages.extractImages(question);
+
+      return {
+        ...acc,
+        ...missingImages.reduce((imagesAcc, image) => ({ ...imagesAcc, [image]: '' }), {}),
+      };
+    }, {});
+
+    for (const imageKey of Object.keys(imageKeys)) {
+      if (!imageKey) {
+        continue;
+      }
+
+      await Storage.uploadMedia(imageKey);
+    }
+
+    Object.keys(questions).forEach((key) => {
+      questions[key] = VodiyImages.replaceQuestionImage(questions[key]);
+    });
 
     return this;
   };
