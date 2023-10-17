@@ -9,6 +9,14 @@ import Time from './Time';
 import Storage from './Storage';
 import VodiyImages from './VodiyImages';
 
+const chalk = {
+  yellow: console.log,
+  green: console.log,
+  blue: console.log,
+  white: console.log,
+  grey: console.log,
+};
+
 class VodiyLoader implements IPageLoader {
   static domainURL = 'https://vodiy.ua';
   static baseURL = 'https://vodiy.ua/pdr/test/?complect=6&theme=1';
@@ -150,14 +158,18 @@ class VodiyLoader implements IPageLoader {
       questions: [],
     };
 
+    chalk.yellow(`Start page ${themeUrl}`);
+
     await this.handleSinglePage(jsdomInstance, themeId);
+
+    chalk.yellow(`Finish page ${themeUrl}`);
 
     const questionsAmount = parseInt(
       HTMLNodes.processInnerText(jsdomInstance.window.document.querySelector('.questions_left').innerHTML)
     );
     const pagesAmount = Math.ceil(questionsAmount / 20);
 
-    if (pagesAmount === 1 || true) {
+    if (pagesAmount === 1) {
       return this;
     }
 
@@ -171,10 +183,12 @@ class VodiyLoader implements IPageLoader {
       });
 
     for (const themeUrlItem of themeUrls) {
+      chalk.yellow(`Start page ${themeUrlItem}`);
       const { data } = await axios.get(themeUrlItem);
       const themeJsdom = new JSDOM(data);
 
       await this.handleSinglePage(themeJsdom, themeId);
+      chalk.yellow(`Finish page ${themeUrlItem}`);
     }
 
     return this;
@@ -183,13 +197,18 @@ class VodiyLoader implements IPageLoader {
   fillUpQuestions = async (): Promise<this> => {
     const _urls = await this.getThemesUrl();
 
-    const urls = [_urls[1]];
+    const urls = [..._urls];
 
     for (const urlData of urls) {
+      chalk.green(`Start theme ${urlData.title}`);
+
       const { data } = await axios.get(urlData.url);
       const jsdomInstance = new JSDOM(data);
 
       await this.handleSingleTheme(jsdomInstance, urlData.title, urlData.url);
+
+      chalk.green(`Finish theme ${urlData.title}`);
+
       await Time.sleep_ms(200);
     }
 
@@ -197,6 +216,7 @@ class VodiyLoader implements IPageLoader {
   };
 
   processTooltips = async (): Promise<this> => {
+    chalk.blue(`Start tooltips`);
     Object.values(this.questions).forEach((question) => {
       const tooltips = question.description.filter((item) => item.match(/^\w/i));
 
@@ -217,10 +237,13 @@ class VodiyLoader implements IPageLoader {
       await Time.sleep_ms(200);
     }
 
+    chalk.blue(`Finish tooltips`);
+
     return this;
   };
 
   processQuestionImages = async (questions = this.questions): Promise<{ [key: string]: string }> => {
+    chalk.white(`Start question images`);
     const imageKeys = Object.values(questions).reduce((acc, question) => {
       const missingImages = VodiyImages.extractImages(question);
 
@@ -242,6 +265,8 @@ class VodiyLoader implements IPageLoader {
       questions[key] = VodiyImages.replaceQuestionImage(questions[key]);
     });
 
+    chalk.white(`Finish question images`);
+
     return imageKeys;
   };
 
@@ -249,6 +274,7 @@ class VodiyLoader implements IPageLoader {
     loadedImages: { [key: string]: string },
     tooltips: ITooltips = this.tooltips
   ): Promise<this> => {
+    chalk.grey(`Start tooltip images`);
     const imageKeys = Object.keys(tooltips).reduce((acc, tooltipKey) => {
       const tooltipValue = tooltips[tooltipKey];
 
@@ -265,13 +291,21 @@ class VodiyLoader implements IPageLoader {
       };
     }, {});
 
-    for (const imageKey of Object.keys({ ...imageKeys, ...loadedImages })) {
+    const imagesAmount = Object.keys(imageKeys).length;
+    let idx = 1;
+
+    for (const imageKey of Object.keys(imageKeys)) {
       if (!imageKey) {
         continue;
       }
 
+      console.log(`Start tooltip image ${imageKey} (${idx}/${imagesAmount})`);
       await Storage.uploadMedia(imageKey);
+      console.log(`Finish tooltip image ${imageKey} (${idx}/${imagesAmount})`);
+      idx += 1;
     }
+
+    chalk.grey(`Finish tooltip images`);
 
     return this;
   };
