@@ -10,16 +10,28 @@ class VodiyLoader implements IPageLoader {
   static baseURL = 'https://vodiy.ua/pdr/test/?complect=6&theme=1';
 
   private urlProcessor = new URLProcessor(VodiyLoader.domainURL);
+  private themes: { [id: string]: ITheme } = {};
+  private questions: { [id: string]: IQuestion } = {};
+  private tickets: { [id: string]: ITicket } = {};
 
-  private getThemesUrl = async (): Promise<string[]> => {
-    const { data } = await axios.get(VodiyLoader.baseURL);
-    const jsdomInstance = new JSDOM(data);
+  private getThemesUrl = async (_pageData = null): Promise<IVodiyThemeUrl[]> => {
+    const pageData =
+      _pageData ||
+      (await (async () => {
+        const { data } = await axios.get(VodiyLoader.baseURL);
+
+        return data;
+      })());
+    const jsdomInstance = new JSDOM(pageData);
 
     return [].slice
       .call(jsdomInstance.window.document.querySelectorAll('.inner_keep_block .inner_keep_block_0001 li a'))
-      .map((node) => this.urlProcessor.toAbsolute(node.href))
+      .map((node) => ({
+        url: this.urlProcessor.toAbsolute(node.href),
+        title: HTMLNodes.processInnerText(node.innerHTML),
+      }))
       .filter(
-        (url) =>
+        ({ url }) =>
           ![
             'theme=125',
             'theme=126',
@@ -41,7 +53,7 @@ class VodiyLoader implements IPageLoader {
       );
   };
 
-  private processSingleQuestion = async (listNode: HTMLElement): Promise<IQuestion> => {
+  private processSingleQuestion = async (listNode: HTMLElement): Promise<IQuestion & { ticketId: string }> => {
     const title = HTMLNodes.processInnerText(listNode.querySelector('p').innerHTML);
     const source = HTMLNodes.processInnerText(listNode.querySelector('.title_ticket').innerHTML);
 
@@ -56,6 +68,9 @@ class VodiyLoader implements IPageLoader {
         isRight: question.querySelector('input').getAttribute('rel') === 'rt1',
         id: v4(),
       }));
+
+    // @ts-ignore
+    const ticketId = listNode.querySelector('input[name="ticket_number"]').value;
 
     let description = [];
 
@@ -72,6 +87,7 @@ class VodiyLoader implements IPageLoader {
     }
 
     return {
+      ticketId,
       id: v4(),
       title,
       source,
@@ -81,29 +97,96 @@ class VodiyLoader implements IPageLoader {
     };
   };
 
+  handleSinglePage = async (jsdomInstance: JSDOM, themeId: string): Promise<this> => {
+    for (const questionNode of [].slice.call(jsdomInstance.window.document.querySelectorAll('.ticketpage_ul > li'))) {
+      const { ticketId, ...question } = await this.processSingleQuestion(questionNode);
+
+      this.themes[themeId].questions.push(question.id);
+      this.questions[question.id] = question;
+
+      if (!this.tickets[ticketId]) {
+        this.tickets[ticketId] = {
+          id: v4(),
+          ticketNumber: ticketId,
+          title: `Білет №${ticketId}`,
+          questions: [],
+        };
+      }
+
+      this.tickets[ticketId].questions.push(question.id);
+    }
+
+    return this;
+  };
+
+  handleSingleTheme = async (jsdomInstance: JSDOM, themeTitle: string, themeUrl: string): Promise<this> => {
+    const themeId = v4();
+
+    this.themes[themeId] = {
+      id: themeId,
+      title: themeTitle,
+      questions: [],
+    };
+
+    await this.handleSinglePage(jsdomInstance, themeId);
+
+    const questionsAmount = parseInt(
+      HTMLNodes.processInnerText(jsdomInstance.window.document.querySelector('.questions_left').innerHTML)
+    );
+    const pagesAmount = Math.ceil(questionsAmount / 20);
+
+    if (pagesAmount === 1) {
+      return this;
+    }
+
+    const themeUrls = Array(pagesAmount - 1)
+      .fill(null)
+      .map((_, idx) => {
+        const urlInstance = new jsdomInstance.window.URL(themeUrl);
+        urlInstance.searchParams.set('part', `${idx + 2}`);
+
+        return urlInstance.href;
+      });
+
+    for (const themeUrlItem of themeUrls) {
+      const { data } = await axios.get(themeUrlItem);
+      const themeJsdom = new JSDOM(data);
+
+      await this.handleSinglePage(themeJsdom, themeId);
+    }
+
+    return this;
+  };
+
+  fillUpQuestions = async (): Promise<this> => {
+    const _urls = await this.getThemesUrl();
+
+    const urls = [_urls[1]];
+
+    for (const urlData of urls) {
+      const { data } = await axios.get(urlData.url);
+      const jsdomInstance = new JSDOM(data);
+
+      await this.handleSingleTheme(jsdomInstance, urlData.title, urlData.url);
+    }
+
+    return this;
+  };
+
   getQuestions = async (): Promise<IQuestion[]> => {
-    const urls = await this.getThemesUrl();
-
-    const { data } = await axios.get(urls[0]);
-    const jsdomInstance = new JSDOM(data);
-
-    const ticket = await this.processSingleQuestion(jsdomInstance.window.document.querySelector('.ticketpage_ul > li'));
-
-    console.log(ticket);
-
-    return Promise.resolve([]);
+    return Object.values(this.questions);
   };
 
   getThemes = async (): Promise<ITheme[]> => {
-    return Promise.resolve([]);
+    return Object.values(this.themes);
   };
 
   getTickets = async (): Promise<ITicket[]> => {
-    return Promise.resolve([]);
+    return Object.values(this.tickets);
   };
 
   getTooltips = async (): Promise<ITooltips> => {
-    return Promise.resolve(undefined);
+    return Promise.resolve({});
   };
 }
 

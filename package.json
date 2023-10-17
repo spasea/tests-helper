@@ -20,6 +20,7 @@
     "@typescript-eslint/eslint-plugin": "^6.7.3",
     "@typescript-eslint/parser": "^6.7.3",
     "axios": "^1.5.1",
+    "cloudinary": "^1.41.0",
     "dayjs": "^1.11.7",
     "dotenv": "^16.3.1",
     "eslint": "^8.50.0",
