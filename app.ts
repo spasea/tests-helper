@@ -14,7 +14,7 @@ const main = async () => {
 
   // console.log(new URLProcessor('https://vodiy.ua').toAbsolute('/media'));
 
-  Cloudinary.v2.uploader.upload('');
+  // Cloudinary.v2.uploader.upload('');
 };
 
 main();
